@@ -63,6 +63,10 @@
         .btn-unit-select.piece { border-color: #212529; color: #212529; }
         .btn-unit-select.kg { border-color: #d63384; color: #d63384; }
         .btn-unit-select i { display: block; font-size: 1.5rem; margin-bottom: 5px; }
+        
+        /* 清空常用清單按鈕樣式 */
+        .btn-reset-freq { margin: 30px auto 10px auto; display: block; color: #adb5bd; border: 1px solid #dee2e6; font-size: 0.8rem; border-radius: 20px; padding: 5px 15px; background: transparent; }
+        .btn-reset-freq:hover { background-color: #e9ecef; color: #dc3545; border-color: #dc3545; }
     </style>
 </head>
 <body>
@@ -130,13 +134,6 @@
                     <input type="text" id="inputShopCode" class="form-control" placeholder="例如：A8888 (未有可留空)">
                     <div class="form-text">如屬新客戶或急單，此欄可留空。</div>
                 </div>
-                <hr class="my-4">
-                <div class="d-grid">
-                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetFrequentList()">
-                        <i class="bi bi-arrow-counterclockwise"></i> 清空我的「常用清單」紀錄
-                    </button>
-                    <div class="form-text text-center mt-1">如果常用清單太亂，可按此重置。</div>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="btnCancelProfile" data-bs-dismiss="modal" style="display:none;">取消</button>
@@ -179,7 +176,7 @@
 
 <script>
     // ==========================================
-    // V8.2 核心: 智能排序 + 數據管理
+    // V8.3 核心: 自動清空購物車 + 底部重置清單
     // ==========================================
     let shopName = "";
     let shopCode = "";
@@ -218,151 +215,33 @@
         { cat: "漬物", items: ["壽司紅薑 (C27)", "壽司白薑 (C27A)", "牛蒡醬油漬 (C31B)", "薑芽(30本) (C27B)", "海葡萄100g (D81A)", "青雞冠草 (C09)", "泡菜（400g） (C87B)", "大L蘿白 (C31)", "味噌蒜頭漬 (C31C)", "紅雞冠草 (C09A)", "味付筍 (C31D)", "青海草 (C10AA)"] },
         { cat: "伴碟/乾貨/工具", items: ["軍艦紫菜50片 (C18A)", "壽司紫菜50片 (C18C)", "神戶切絲紫菜 (C18E)", "單翼手捲海苔 (C18F)", "日出昆布 (C57)", "碎海草 (C10A)", "海苔粉 (C18G)", "紫菜杯 (C18J)", "日高昆布 (C57A)", "山形膠葉 (C01B)", "櫻花蝦乾500g (C03)", "櫻花蝦乾90g (C03A)", "醫用丁晴手套 S (C50BA)", "醫用丁晴手套 M (C50BB)", "醫用丁晴手套 L (C50BC)", "保鮮綿紙M (C70)", "914保鮮紙 (C914SC)", "912保鮮紙 (C912SC)", "910保鮮紙 (C910SC)", "613錫紙 (C613)", "3寸木皮船 (C04C)", "手套S (C50AA)", "手套M (C50AB)", "天婦羅紙 (C43A)", "木盒 (C07)", "細木盒 (C07A)", "日本JFDA消毒酒精 (C50D)"] }
     ];
-    let productMap = {}, cart = {}, cartUnits = {}, cartModal = null, unitModal = null, pendingProductCode = null, nameModal = null;
-
+    let productMap = {}, cart = {}, cartUnits = {}, cartModal = null, unitModal = null, pendingProductCode = null;
     function init() {
-        // V8.2 自助登記
-        const savedName = localStorage.getItem(storageKey + '_shopName');
-        const savedCode = localStorage.getItem(storageKey + '_shopCode');
-        
-        if (savedName) {
-            shopName = savedName;
-            shopCode = savedCode || "---";
-            updateHeaderDisplay();
-        } else {
-            nameModal = new bootstrap.Modal(document.getElementById('profileModal'));
-            nameModal.show();
-        }
-
         productMap = {}; 
         fullCatalog.forEach(c=>{c.items.forEach(i=>{const m=i.match(/^(.*)\s*\(([A-Za-z0-9]+)\)$/);if(m)productMap[m[2]]={fullName:i,name:m[1],code:m[2]}})});
-        
-        loadCart(); 
-        
-        // V8.2 Load frequent list (Array of objects: {code, count})
-        // 為了相容 V8.1 的舊數據 (只是 Array of strings)，我們做一個轉換檢查
-        const savedFrequent = localStorage.getItem(storageKey + '_freqData');
-        if (savedFrequent) {
-            try { frequentData = JSON.parse(savedFrequent); } catch(e) {}
-        } else {
-            // 嘗試讀取舊版 V8.1 數據並遷移
-            const oldFrequent = localStorage.getItem(storageKey + '_freq');
-            if (oldFrequent) {
-                try { 
-                    const oldArr = JSON.parse(oldFrequent); 
-                    // 給舊數據一個默認 count: 1，並保持原有順序（index 越大越新，所以 count 給高一點點？）
-                    // 簡單起見，全部 count: 1
-                    frequentData = oldArr.map(code => ({code: code, count: 1}));
-                } catch(e) {}
-            }
-        }
-
-        renderFrequent(); 
-        renderAll();
-        cartModal=new bootstrap.Modal(document.getElementById('cartModal')); 
-        unitModal=new bootstrap.Modal(document.getElementById('unitSelectionModal'));
+        loadCart(); renderFrequent(); renderAll();
+        cartModal=new bootstrap.Modal(document.getElementById('cartModal')); unitModal=new bootstrap.Modal(document.getElementById('unitSelectionModal'));
     }
-
-    // === V8.1 店名與編號管理 ===
-    function saveProfile() {
-        const nameInput = document.getElementById('inputShopName').value.trim();
-        const codeInput = document.getElementById('inputShopCode').value.trim();
-        
-        if (!nameInput) {
-            document.getElementById('nameError').style.display = 'block';
-            return;
-        }
-        
-        shopName = nameInput;
-        shopCode = codeInput || "---";
-        
-        localStorage.setItem(storageKey + '_shopName', shopName);
-        localStorage.setItem(storageKey + '_shopCode', shopCode);
-        
-        updateHeaderDisplay();
-        
-        if (nameModal) nameModal.hide();
-        else {
-            const modalEl = document.getElementById('profileModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            if (modalInstance) modalInstance.hide();
-        }
-    }
-
-    function openProfileModal() {
-        document.getElementById('inputShopName').value = shopName;
-        document.getElementById('inputShopCode').value = (shopCode === "---" || shopCode === "新開戶") ? "" : shopCode;
-        document.getElementById('btnCancelProfile').style.display = 'block';
-        document.getElementById('nameError').style.display = 'none';
-        if (!nameModal) nameModal = new bootstrap.Modal(document.getElementById('profileModal'));
-        nameModal.show();
-    }
-
-    function updateHeaderDisplay() {
-        document.getElementById('displayClientName').innerText = shopName;
-        document.getElementById('displayClientCode').innerText = shopCode;
-    }
-
-    // V8.2 Data Structure: Array of {code: "A01", count: 5}
-    let frequentData = []; 
-
-    // V8.2 Reset Function
-    function resetFrequentList() {
-        if(confirm("確定要清空「常用清單」的所有紀錄嗎？\n(此操作無法復原)")){
-            frequentData = [];
-            localStorage.removeItem(storageKey + '_freqData'); // Clear new data
-            localStorage.removeItem(storageKey + '_freq');     // Clear old data just in case
-            renderFrequent();
-            alert("常用清單已重置。");
-            // Close modal
-            const modalEl = document.getElementById('profileModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            if (modalInstance) modalInstance.hide();
-        }
-    }
-
     function loadCart() {
-        const c=localStorage.getItem(storageKey + '_cart'), u=localStorage.getItem(storageKey + '_units');
+        const c=localStorage.getItem('orderCart_'+customerCode), u=localStorage.getItem('orderUnits_'+customerCode);
         if(c)try{cart=JSON.parse(c)}catch(e){} if(u)try{cartUnits=JSON.parse(u)}catch(e){}
         calcTotal();
     }
     function saveCart() {
-        localStorage.setItem(storageKey + '_cart', JSON.stringify(cart));
-        localStorage.setItem(storageKey + '_units', JSON.stringify(cartUnits));
+        localStorage.setItem('orderCart_'+customerCode, JSON.stringify(cart));
+        localStorage.setItem('orderUnits_'+customerCode, JSON.stringify(cartUnits));
     }
     function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-link').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');event.target.classList.add('active');if(t==='all'){clearSearch();document.getElementById('searchBar').style.display='block';window.scrollTo(0,0)}else{document.getElementById('searchBar').style.display='none'}}
-    
-    // V8.2 Sorted Rendering
-    function renderFrequent(){
-        const c=document.getElementById('tab-frequent');
-        if(!frequentData || frequentData.length===0){
-            c.innerHTML='<div class="text-center p-5 text-muted"><i class="bi bi-stars" style="font-size: 2rem; color: #ffc107;"></i><p class="mt-3">您的常用清單目前是空的。</p><p style="font-size: 0.9rem;">當您從「全部產品」發送訂單後，<br>系統會自動將產品加入此處。</p></div>';
-            return;
-        }
-        
-        // Sort by count (descending)
-        frequentData.sort((a, b) => b.count - a.count);
-
-        let h='';
-        frequentData.forEach(item=>{
-            const p=productMap[item.code];
-            h+=p?createProductRow(p.fullName):createProductRow(item.code+' (未知)');
-        });
-        c.innerHTML=h;
-    }
-
+    function renderFrequent(){const c=document.getElementById('tab-frequent');let h='';frequentCodes.forEach(code=>{const p=productMap[code];h+=p?createProductRow(p.fullName):createProductRow(code+' (未知)')});c.innerHTML=h}
     function renderAll(f=''){const c=document.getElementById('tab-all');let h='';const t=f.toUpperCase().split('');fullCatalog.forEach(cat=>{const items=cat.items.filter(i=>{if(!f)return true;const u=i.toUpperCase();return t.every(x=>u.includes(x))});if(items.length>0){if(!f)h+=`<div class="cat-header">${cat.cat}</div>`;items.forEach(i=>h+=createProductRow(i))}});if(h==='')h='<div class="text-center p-5 text-muted">找不到相關產品</div>';c.innerHTML=h}
-    
     function createProductRow(s){
         let n=s,c='UNKNOWN';const m=s.match(/^(.*)\s*\(([A-Za-z0-9]+)\)$/);if(m){n=m[1];c=m[2]}else{c=s.replace(/[^a-zA-Z0-9]/g,'')}
         const q=cart[c]||0; let val=q, cls='qty-input'; if(q>0&&cartUnits[c]==='kg'){val+=' K';cls+=' unit-kg'}
         const sel=q>0?'selected':'';
         return `<div class="product-row ${sel}" id="row-${c}"><div class="p-info"><div class="p-name">${n}</div><div class="p-code">${c}</div></div><div class="qty-control"><div class="qty-btn" onclick="updateQty('${c}',-1)">-</div><input type="text" class="${cls}" id="qty-${c}" value="${val}" readonly><div class="qty-btn" onclick="updateQty('${c}',1)">+</div></div></div>`
     }
-    
     function filterAllProducts(){const v=document.getElementById('searchInput').value;document.getElementById('clearSearchBtn').style.display=v.length?'block':'none';renderAll(v)}
     function clearSearch(){document.getElementById('searchInput').value='';document.getElementById('clearSearchBtn').style.display='none';renderAll('')}
-    
     function updateQty(c,d){
         if(eelProducts.includes(c)){
             if(d>0&&(!cart[c]||cart[c]===0)){cart[c]=5;cartUnits[c]='kg'}else{if(!cart[c])cart[c]=0;cart[c]+=d*5}
@@ -380,7 +259,6 @@
         syncUI(c);
     }
     function confirmUnit(u){if(pendingProductCode){cartUnits[pendingProductCode]=u;updateQty(pendingProductCode,1);unitModal.hide();pendingProductCode=null}}
-    
     function syncUI(c){
         const q=cart[c]||0, u=cartUnits[c];
         document.querySelectorAll(`#qty-${c}`).forEach(i=>{
@@ -391,57 +269,27 @@
         });
         calcTotal(); saveCart(); if(document.getElementById('cartModal').classList.contains('show'))renderCartModalItems();
     }
-    
-    function clearCart(){if(Object.keys(cart).length===0)return;if(confirm("確定要清空所有已選貨品嗎？")){cart={};cartUnits={};localStorage.removeItem(storageKey + '_cart');localStorage.removeItem(storageKey + '_units');renderFrequent();renderAll();calcTotal();renderCartModalItems()}}
-    
+    function clearCart(){if(Object.keys(cart).length===0)return;if(confirm("確定要清空所有已選貨品嗎？")){cart={};cartUnits={};localStorage.removeItem('orderCart_'+customerCode);localStorage.removeItem('orderUnits_'+customerCode);renderFrequent();renderAll();calcTotal();renderCartModalItems()}}
     function calcTotal(){
         const count=Object.keys(cart).length; document.getElementById('totalQty').innerText=count;
         const b=document.getElementById('viewCartBtn');
         if(count>0){b.classList.add('active');b.disabled=false;b.innerHTML=`<i class="bi bi-cart-check-fill"></i> 查看已選 (${count})`}else{b.classList.remove('active');b.disabled=true;b.innerHTML=`<i class="bi bi-cart3"></i> 查看已選`}
     }
-    
     function openCartModal(){renderCartModalItems();cartModal.show()}
-    
     function renderCartModalItems(){
         const c=document.getElementById('cartModalBody');
         if(Object.keys(cart).length===0){c.innerHTML='<div class="text-center p-4 text-muted">尚未選擇任何產品</div>';return}
         let h=''; for(let k in cart){const p=productMap[k];h+=createProductRow(p?p.fullName:`${k} (未知)`);} c.innerHTML=h;
     }
-    
     function sendWhatsApp(){
         if(Object.keys(cart).length===0){alert("請先選擇產品！");return}
-        
-        // V8.2 Learning Logic: Update Counts
-        let updated = false;
-        for(let code in cart){
-            let found = frequentData.find(item => item.code === code);
-            if(found){
-                found.count++; // Increment count
-            } else {
-                frequentData.push({code: code, count: 1}); // Add new with count 1
-            }
-            updated = true;
-        }
-        
-        if(updated) {
-            localStorage.setItem(storageKey + '_freqData', JSON.stringify(frequentData));
-            renderFrequent();
-        }
-
-        // 處理顯示用的 Code
-        let codeDisplay = (shopCode === "---" || !shopCode) ? "(新開戶)" : shopCode;
-
-        let msg=`${codeDisplay} ${shopName}\n訂貨單：\n\n`;
+        let msg=`${customerCode} ${customerName}\n訂貨單：\n\n`;
         const fmt=c=>{const p=productMap[c];const n=p?p.name:c;let q=cart[c].toString();if(cartUnits[c]==='kg')q+='K';return ` ${q.padEnd(5,' ')} ${n} (${c})\n`};
-        
-        for(let c in cart){
-            msg+=fmt(c);
-        }
-        
+        frequentCodes.forEach(c=>{if(cart[c])msg+=fmt(c)});
+        for(let c in cart){if(!frequentCodes.includes(c))msg+=fmt(c)}
         window.open(`https://wa.me/85263771688?text=${encodeURIComponent(msg)}`,'_blank');
     }
     init();
 </script>
-
 </body>
 </html>
