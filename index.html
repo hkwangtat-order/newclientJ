@@ -62,13 +62,15 @@
         .freq-divider { text-align: center; margin: 20px 0; font-size: 0.85rem; color: #aaa; position: relative; }
         .freq-divider:before { content: ""; position: absolute; top: 50%; left: 15%; width: 25%; height: 1px; background: #ddd; }
         .freq-divider:after { content: ""; position: absolute; top: 50%; right: 15%; width: 25%; height: 1px; background: #ddd; }
-        
-        /* Setup Modal Styles */
         .setup-input-group { margin-bottom: 15px; text-align: left; }
         .setup-label { font-weight: bold; margin-bottom: 5px; display: block; color: #333; }
         .setup-input { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; }
         .setup-input:focus { border-color: #ffc107; outline: none; }
         .btn-setup-save { width: 100%; background-color: #ffc107; color: black; font-weight: bold; padding: 12px; border: none; border-radius: 8px; font-size: 1.1rem; margin-top: 10px; }
+        
+        /* New: Clear Button Style */
+        .btn-clear-history { display: block; margin: 30px auto; padding: 8px 20px; border: 1px solid #ccc; background: white; color: #666; border-radius: 50px; font-size: 0.9rem; transition: all 0.2s; }
+        .btn-clear-history:hover { background: #f8f9fa; color: #333; border-color: #999; }
     </style>
 </head>
 <body>
@@ -165,14 +167,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // V9.0 Universal Generic Template
+    // V9.1 Universal Generic Template (With Reset Feature)
     let customerName = ""; 
     let customerCode = "";
     const salesPhone = "85263771688"; 
-    const storageKey = "generic_user_v9"; // Key for learned items
-    const profileKey = "generic_profile_v9"; // Key for name/code
+    const storageKey = "generic_user_v9"; 
+    const profileKey = "generic_profile_v9"; 
 
-    // Starts empty! Populated by user history
     let frequentCodes = []; 
     let learnedFrequent = []; 
 
@@ -203,116 +204,81 @@
         { cat: "肉類4", items: ["黑豚肉眼（日本） (M010)", "內蒙古法式羊扒 (M006B)", "一口豚肉 (M004B)", "杜洛克風乾火腿片 (D99)", "日式原條叉燒 (E06)", "日式芝士漢堡扒60g (H02A)", "豬軟骨 (E05)", "日式漢堡扒 (H02)", "煙肉片 (D76B)", "日式叉燒片 (E06A)", "豚肉片2K裝 (M010A)", "香芋地瓜丸 (C30C)", "炸魷魚圈 (D41C)"] },
         { cat: "日式炸物1", items: ["20g吉列蝦(白糠) (D10E)", "25g吉列蝦（黃糠） (D10EAA)", "KS 芝士年糕 (D65)", "日本吉列蠔 (D64BA)", "日本炸年糕串 (D65C)", "中國吉列蠔 (D64B)", "一口炸芝士 (D65AA)", "包裝吉列豬扒130g (E04EA)", "吉列魚柳 (D61F)", "原箱吉列豬扒130g (E04C)", "日式煎菜肉餃子 (E08)", "黑毛豬炸肉餅 (H03B)", "熔岩海膽魚餅 (D01A)", "炸池魚仔 (D62A)", "無頭甜蝦L50 (D10KC)"] },
         { cat: "日式炸物2", items: ["吉列牛肉薯餅 (H01A)", "甘栗紫薯餅 (H01F)", "吉列南瓜薯餅 (H01E)", "蟹肉忌廉薯餅 (H01)", "芝士薯餅 (H01G)", "雞皮餃子 (E08AA)", "冷凍面包糠 (C60A)", "炸蟹鉗 (D60F)", "拉絲芝士碎 (D65B)", "日式章魚燒50粒 (E09A)", "日式炸雞塊 (E11)", "天婦羅魷魚500g (D39GA)", "車打芝士片12片 (D65BB)", "雙色芝士碎 (D65BA)"] },
-        { cat: "日式甜品/飲料", items: ["忌廉泡芙 (C29C)", "紅豆和果子 (C30B)", "朱古力泡芙 (C29)", "芝士蛋糕 (C47C)", "獺祭三割九分純米大吟醸 (W004)", "京姬匠純米大吟醸 (W005)", "大嶺三粒米山田錦 (W003A)", "ORION沖繩支裝生啤 (W017A)", "富士山威士忌 (W019)", "木村富士山柚子梳打 (G04F)", "波子汽水(白檸) (G03D)", "木村蜜瓜味汽水 (G04A)", "木村水蜜桃味汽水 (G04B)", "菠蘿波子汽水 (G03E)", "木村蘋果味汽水 (G04)", "Sangaria氣水 橙味 (G01AA)", "Sangaria氣水 橙味 (G01AA)", "Sangaria氣水 原味 (G01BA)", "Sangaria氣水 蜜瓜味 (G01CA)", "Sangaria氣水 提子味 (G01DA)", "日本番薯 (C05A)"] },
+        { cat: "日式甜品/飲料", items: ["忌廉泡芙 (C29C)", "紅豆和果子 (C30B)", "朱古力泡芙 (C29)", "芝士蛋糕 (C47C)", "獺祭三割九分純米大吟醸 (W004)", "京姬匠純米大吟醸 (W005)", "大嶺三粒米山田錦 (W003A)", "ORION沖繩支裝生啤 (W017A)", "富士山威士忌 (W019)", "木村富士山柚子梳打 (G04F)", "波子汽水(白檸) (G03D)", "木村蜜瓜味汽水 (G04A)", "木村水蜜桃味汽水 (G04B)", "菠蘿波子汽水 (G03E)", "木村蘋果味汽水 (G04)", "Sangaria氣水 橙味 (G01AA)", "Sangaria氣水 原味 (G01BA)", "Sangaria氣水 蜜瓜味 (G01CA)", "Sangaria氣水 提子味 (G01DA)", "日本番薯 (C05A)"] },
         { cat: "調味料", items: ["QP沙律醬 (C24A)", "丘比凱撒沙律汁 (C24G)", "丘比焙煎芝麻沙律汁 (C24F)", "丘比日式沙律汁 (C24E)", "日本KENKO濃味胡麻沙律汁 (C26)", "KENKO蒜蓉牛油汁 (C26A)", "KENKO蜂蜜芥末醬 (C26AB)", "食研和風沙律汁 (C24B)", "山葵沙律汁 (C26B)", "東字冷面汁（4倍濃縮） (C26G)", "KENKO柚子沙律汁 (C26C)", "日本GFC急凍芥辣 (C28A)", "金印芥茉粉 (C28B)", "S&B支裝青芥辣 (C15)", "東字淡口豉油 (C14E)", "溜溜豉油 (C14I)", "萬字豉油（支裝） (C14G)", "魚生豉油（豐泉） (C14DA)", "日本外賣豉油包 (C14J)", "東丸魚生豉油 (C14C)", "勁辣芥茉粉 (C28)", "食研迷你芥辣包 (C15C)", "山葵醬油漬 (C28D)", "日本東字九州拉麵汁 (C38A)", "5號拉麵汁 (C38)", "桃屋朝鮮醬 (C45)", "神戶鰻魚汁 (C25)", "神戶朝鮮醬 (C25B)", "地獄拉麵汁 (C45A)", "豐泉白湯拉麺汁 (C38B)", "日本黑蒜油 (C79C)", "紅葉辣椒醬 (C45BA)", "味噌湯包 (C53F)", "煮酒 (C36D)", "味醂 (C19B)", "桶裝煮酒 (C36E)", "桶裝味醂 (C19C)", "合成醋KD39（麥近） (C22A)", "桶裝萬字豉油 (C14GA)", "優選醋 (C22D)", "白菊醋（麥近） (C20B)", "大豆白鮫油 (C79)", "江戶前赤醋 (C22E)", "日清麻油1.5L（大支） (C79B)", "穀物醋(麥近) (C20A)", "柚子醋（麥近） (C20BA)", "大滝牛肉火鍋汁 (C42)", "荏原燒肉汁 (C44A)", "檸醋 (C22B)", "舵手豬扒汁 (C44)", "日式燒雞汁 (C44C)", "生姜燒（豐泉） (C25E)", "神戶燒肉汁 (C25A)", "神戶壽喜燒汁 (C25J)", "萬字白昆布木魚汁 (C26KB)", "食研原味烤肉醬 (C34C)", "食研照燒汁 (C25F)", "食研薑味烤肉醬 (C34D)", "食研蒜味烤肉醬 (C34E)", "食研山賊燒醬（黑椒汁） (C34B)", "食研什錦海藻 (C34A)", "薑蓉 (C27C)", "蒜蓉 (C27D)", "S&B七味(包裝) (C56A)", "炸雞粉 (C60)", "木魚花 (C41)", "木魚絲 (C23)", "昭和天婦羅粉 (C43)", "韓國柚子蜜 (C61)", "上白糖 (C51C)", "日本鹽 (C51A)", "味鹽 (C51)", "S&B七味粉 (C56)", "木魚精 (C41A)", "瀬戶風味泡飯素 (C67B)", "味椒鹽 (C51B)", "味付椒鹽 (C51BB)", "S&B咖喱磚 甘口 (C39)", "S&B咖喱磚 辛口 (C39A)", "S&B咖喱磚 中辛 (C39B)", "高吸收熟成膜 (C92)", "黑松露醬 (C49)", "芋絲 (C62A)", "迷迭香 (C01E)", "西京白味噌 (C53A)", "一休味噌 (C53B)", "白芝麻 (C65)", "信洲白味噌 (C53)", "花丸木味噌 (C53D)", "合成醋（麥近） (C22A)", "桶裝煮酒 (C36E)"] },
         { cat: "麵/烏冬/米/茶", items: ["急凍真打稻庭烏冬 (D82)", "急凍拉麵 (D82A)", "日式乾拉麵120g (C52E)", "凍蕎麥面 (D82E)", "乾葛絲 (C62)", "五木赤面（日本） (C52B)", "日本新潟米 (C69D)", "桶裝醋開關蓋 (C07G)", "飯網 (C17)", "炊飯素 (C67C)", "大麥茶包 (C61B)", "玄米茶 (C61A)"] },
         { cat: "漬物", items: ["壽司紅薑 (C27)", "壽司白薑 (C27A)", "牛蒡醬油漬 (C31B)", "薑芽(30本) (C27B)", "海葡萄100g (D81A)", "青雞冠草 (C09)", "泡菜（400g） (C87B)", "大L蘿白 (C31)", "味噌蒜頭漬 (C31C)", "紅雞冠草 (C09A)", "味付筍 (C31D)", "青海草 (C10AA)"] },
         { cat: "伴碟/乾貨/工具", items: ["軍艦紫菜50片 (C18A)", "壽司紫菜50片 (C18C)", "神戶切絲紫菜 (C18E)", "單翼手捲海苔 (C18F)", "日出昆布 (C57)", "碎海草 (C10A)", "海苔粉 (C18G)", "紫菜杯 (C18J)", "日高昆布 (C57A)", "山形膠葉 (C01B)", "櫻花蝦乾500g (C03)", "櫻花蝦乾90g (C03A)", "醫用丁晴手套 S (C50BA)", "醫用丁晴手套 M (C50BB)", "醫用丁晴手套 L (C50BC)", "保鮮綿紙M (C70)", "914保鮮紙 (C914SC)", "912保鮮紙 (C912SC)", "910保鮮紙 (C910SC)", "613錫紙 (C613)", "3寸木皮船 (C04C)", "手套S (C50AA)", "手套M (C50AB)", "天婦羅紙 (C43A)", "木盒 (C07)", "細木盒 (C07A)", "日本JFDA消毒酒精 (C50D)"] }
     ];
-    let productMap = {}, cart = {}, cartUnits = {}, cartModal = null, unitModal = null, pendingProductCode = null, setupModal = null;
+    let productMap = {}, cart = {}, cartUnits = {}, cartModal = null, unitModal = null, pendingProductCode = null;
     function init() {
         productMap = {}; 
         fullCatalog.forEach(c=>{c.items.forEach(i=>{const m=i.match(/^(.*)\s*\(([A-Za-z0-9]+)\)$/);if(m)productMap[m[2]]={fullName:i,name:m[1],code:m[2]}})});
         
-        // Generic: Load Profile
-        customerName = localStorage.getItem(profileKey + "_name") || "";
-        customerCode = localStorage.getItem(profileKey + "_code") || "";
-        
-        // Update UI
-        updateClientInfoUI();
-
-        // Load Learned Items
         const savedFreq = localStorage.getItem(storageKey + '_learned');
         if(savedFreq) {
-            try { learnedFrequent = JSON.parse(savedFreq); } catch(e) {}
+            try { 
+                learnedFrequent = JSON.parse(savedFreq); 
+            } catch(e) {}
         }
 
         loadCart(); renderFrequent(); renderAll();
-        
-        cartModal=new bootstrap.Modal(document.getElementById('cartModal')); 
-        unitModal=new bootstrap.Modal(document.getElementById('unitSelectionModal'));
-        setupModal=new bootstrap.Modal(document.getElementById('setupModal'));
-
-        // If no profile, show setup modal
-        if(!customerName || !customerCode){
-            openSetupModal(false);
-        }
-    }
-    
-    function openSetupModal(allowClose = true) {
-        document.getElementById('inputClientName').value = customerName;
-        document.getElementById('inputClientCode').value = customerCode;
-        const closeBtn = document.getElementById('setupCloseBtn');
-        if(allowClose) closeBtn.style.display = 'block';
-        else closeBtn.style.display = 'none';
-        setupModal.show();
-    }
-
-    function saveClientDetails() {
-        const name = document.getElementById('inputClientName').value.trim();
-        const code = document.getElementById('inputClientCode').value.trim();
-        if(!name || !code) { alert("請輸入完整的名稱和編號！"); return; }
-        
-        customerName = name;
-        customerCode = code;
-        localStorage.setItem(profileKey + "_name", customerName);
-        localStorage.setItem(profileKey + "_code", customerCode);
-        
-        updateClientInfoUI();
-        setupModal.hide();
-    }
-
-    function updateClientInfoUI() {
-        if(customerName) document.getElementById('displayClientName').innerHTML = customerName + ' <i class="bi bi-pencil-square" style="font-size:0.8em"></i>';
-        if(customerCode) document.getElementById('displayClientCode').innerText = customerCode;
+        cartModal=new bootstrap.Modal(document.getElementById('cartModal')); unitModal=new bootstrap.Modal(document.getElementById('unitSelectionModal'));
     }
     
     function getDeliveryDate() {
         const now = new Date();
         const hour = now.getHours();
         let targetDate = new Date(now);
-        if (hour >= 11) targetDate.setDate(targetDate.getDate() + 1);
+        
+        if (hour >= 11) {
+            targetDate.setDate(targetDate.getDate() + 1);
+        }
+        
         const y = targetDate.getFullYear();
         const m = String(targetDate.getMonth() + 1).padStart(2, '0');
         const d = String(targetDate.getDate()).padStart(2, '0');
-        const w = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"][targetDate.getDay()];
+        const weekdays = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+        const w = weekdays[targetDate.getDay()];
+        
         return `${y}-${m}-${d} (${w})`;
     }
 
     function loadCart() {
-        const c=localStorage.getItem('orderCart_'+storageKey), u=localStorage.getItem('orderUnits_'+storageKey);
+        const c=localStorage.getItem('orderCart_'+customerCode), u=localStorage.getItem('orderUnits_'+customerCode);
         if(c)try{cart=JSON.parse(c)}catch(e){} if(u)try{cartUnits=JSON.parse(u)}catch(e){}
         calcTotal();
     }
     function saveCart() {
-        localStorage.setItem('orderCart_'+storageKey, JSON.stringify(cart));
-        localStorage.setItem('orderUnits_'+storageKey, JSON.stringify(cartUnits));
+        localStorage.setItem('orderCart_'+customerCode, JSON.stringify(cart));
+        localStorage.setItem('orderUnits_'+customerCode, JSON.stringify(cartUnits));
     }
     function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-link').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');event.target.classList.add('active');if(t==='all'){clearSearch();document.getElementById('searchBar').style.display='block';window.scrollTo(0,0)}else{document.getElementById('searchBar').style.display='none'}}
     
     function renderFrequent(){
         const c=document.getElementById('tab-frequent');
-        const emptyMsg = document.getElementById('emptyFrequentMsg');
         let h='';
         
-        // Generic: frequentCodes is initially empty, populated by learnedFrequent
-        if (learnedFrequent.length > 0) {
-            emptyMsg.style.display = 'none';
-            // Sort learned items for display
-            let sortedLearned = [...learnedFrequent].sort();
-            sortedLearned.forEach(code=>{
-                const p=productMap[code];
-                if(p) { 
-                    h+=createProductRow(p.fullName);
-                }
-            });
-        } else {
-            emptyMsg.style.display = 'block';
-        }
+        frequentCodes.forEach(code=>{
+            const p=productMap[code];
+            if(p) { // Filter unknown
+                h+=createProductRow(p.fullName);
+            }
+        });
         
-        // Don't overwrite if empty, just append or set
-        if(h) c.innerHTML=h;
-        else c.appendChild(emptyMsg); 
+        if (learnedFrequent.length > 0) {
+            let uniqueLearned = learnedFrequent.filter(code => !frequentCodes.includes(code)); 
+            if (uniqueLearned.length > 0) {
+                h += `<div class="freq-divider">👇 最近新增產品 👇</div>`;
+                uniqueLearned.forEach(code=>{
+                    const p=productMap[code];
+                    if(p) { 
+                        h+=createProductRow(p.fullName);
+                    }
+                });
+            }
+        }
+        c.innerHTML=h;
     }
     
     function renderAll(f=''){const c=document.getElementById('tab-all');let h='';const t=f.toUpperCase().split('');fullCatalog.forEach(cat=>{const items=cat.items.filter(i=>{if(!f)return true;const u=i.toUpperCase();return t.every(x=>u.includes(x))});if(items.length>0){if(!f)h+=`<div class="cat-header">${cat.cat}</div>`;items.forEach(i=>h+=createProductRow(i))}});if(h==='')h='<div class="text-center p-5 text-muted">找不到相關產品</div>';c.innerHTML=h}
@@ -385,7 +351,7 @@
         calcTotal(); saveCart(); if(document.getElementById('cartModal').classList.contains('show'))renderCartModalItems();
     }
     
-    function clearCart(){if(Object.keys(cart).length===0)return;if(confirm("確定要清空所有已選貨品嗎？")){cart={};cartUnits={};localStorage.removeItem('orderCart_'+storageKey);localStorage.removeItem('orderUnits_'+storageKey);renderFrequent();renderAll();calcTotal();renderCartModalItems()}}
+    function clearCart(){if(Object.keys(cart).length===0)return;if(confirm("確定要清空所有已選貨品嗎？")){cart={};cartUnits={};localStorage.removeItem('orderCart_'+customerCode);localStorage.removeItem('orderUnits_'+customerCode);renderFrequent();renderAll();calcTotal();renderCartModalItems()}}
     
     function calcTotal(){
         const count=Object.keys(cart).length; document.getElementById('totalQty').innerText=count;
@@ -401,20 +367,17 @@
     
     // V9.0 Sorted Send Logic
     function sendWhatsApp(mode){
-        if(!customerName || !customerCode) { alert("請先設定客戶資料！"); openSetupModal(); return; }
         if(Object.keys(cart).length===0){alert("請先選擇產品！");return}
         
         const dateStr = getDeliveryDate();
         let msg=`${customerCode} ${customerName}\n日期：${dateStr}\n訂貨單：\n\n`;
         const fmt=c=>{const p=productMap[c];const n=p?p.name:c;let q=cart[c].toString();if(cartUnits[c]==='kg')q+='K';return ` ${q.padEnd(5,' ')} ${n} (${c})\n`};
         
-        // V9.0 Sorting
         let codes = Object.keys(cart).sort(); 
         
         let hasNewItems = false;
         for(let c of codes){
-            // Generic: Everything is "new" if it's not already learned
-            if(!learnedFrequent.includes(c)){
+            if(!frequentCodes.includes(c) && !learnedFrequent.includes(c)){
                 learnedFrequent.push(c);
                 hasNewItems = true;
             }
